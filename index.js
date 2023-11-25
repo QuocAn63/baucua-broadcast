@@ -1,5 +1,4 @@
 const options = ["BẦU", "CUA", "TÔM", "CÁ", "NAI", "GÀ"]
-const gameItems = document.querySelectorAll(".game-item")
 const windowStat = document.getElementById("windowStat")
 const mainCircle = document.getElementById("main")
 const itemsClass = ["left-[120px] top-36", "right-[120px] top-36", "left-1/2 -translate-x-1/2 bottom-36"]
@@ -11,7 +10,7 @@ window.addEventListener("load", () => {
     if(tabIndex === 1) {
         handleFirstConnection(bc)
     } else {
-        handleSecondConnection()
+        handleSecondConnection(bc)
     }
 })
 
@@ -25,33 +24,48 @@ const initBroadCastChannel = () => {
 
 const handleFirstConnection = (bc) => {
     const mainElements = createMainElements()
-
     mainCircle.appendChild(mainElements)
 
+    const { top, bottom, left, right } = createSquared()
+
     bc.onmessage = e => {
-        console.log(e)
+        const coverX = e.data.x
+        const coverY = e.data.y
+        console.log(`X: ${left} - ${coverX} - ${right}`)
+        console.log(`Y: ${top} - ${coverY} - ${bottom}`)
+
+        if((top < coverX && coverX < bottom) && (left < coverY && coverY < right)) {
+            console.log("Shaking...")
+        }
     }
 }
 
-const handleSecondConnection = () => {
+const handleSecondConnection = (bc) => {
     const coverElement = createCoverElement()
+    let oldX = window.screenX
+    let oldY = window.screenY
+
+    setInterval(() => {
+        if(oldX !== window.screenX || oldY !== window.screenY) {
+            oldX = window.screenX
+            oldY = window.screenY
+            bc.postMessage({x: oldX, y: oldY}) 
+        }
+    }, 100)
 
     mainCircle.appendChild(coverElement)
-
-    bc.postMessage() 
 }
 
 const createCoverElement = () => {
     const element = document.createElement("div")
 
-    element.className = roundedClass + " bg-black"
+    element.className = roundedClass + " bg-gray-400"
 
     return element
 }
 
 const createMainElements = () => {
     const element = document.createElement("div")
-
     element.className = roundedClass
 
     itemsClass.forEach(item => {
@@ -65,5 +79,21 @@ const createMainElements = () => {
 }
 
 const createSquared = () => {
-    
+    const items = window.document.querySelectorAll(".game-item")
+    let top = 9999
+    let bottom = 0
+    let right = 0
+    let left = 9999
+    console.log(items)
+
+    items.forEach(item => {
+        const rect = item.getBoundingClientRect()
+
+        top = Math.min(top, rect.top)
+        bottom = Math.max(bottom, rect.bottom)
+        left = Math.min(left, rect.left)
+        right = Math.max(right, rect.right)
+    })
+
+    return {top, bottom, left, right}
 }
